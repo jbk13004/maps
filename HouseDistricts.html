@@ -1,0 +1,211 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Show polygon information on click</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.css" type="text/css">
+<!-- Promise polyfill script required to use Mapbox GL Geocoder in IE 11 -->
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class='districtinfo'>
+  <div><strong>District:</strong> <span id='dis'></span></div>
+  <div><strong>Representative:</strong> <span id='rep'></span></div>
+  <div><strong>Email:</strong> <span id='con'></span></div>
+  <div><strong>Phone Number:</strong> <span id='bill'></span></div>
+</div>
+
+
+<style>
+.mapboxgl-popup {
+max-width: 400px;
+font: 16px/20px gilroy light;
+}
+
+.districtinfo {
+  position: absolute;
+  font-family: gilroy;
+  margin-top: 5px;
+  margin-left: 5px;
+  padding: 5px;
+  width: 30%;
+  border: 2px solid black;
+  font-size: 22px;
+  color: #222;
+  background-color: #fff;
+  border-radius: 3px;
+}
+
+
+</style>
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiamJrMTMwMDQiLCJhIjoiY2tpOTVzeWpkMDN4ZTJ5bjg3OTBzN21udiJ9.gJQPNCgsOp2w9ECuu_fj2A';
+var map = new mapboxgl.Map({
+container: 'map',
+style: 'mapbox://styles/jbk13004/ckmo73tq8f8cu17qmxprz8kup',
+center: [-71.892119, 42.362168],
+zoom: 8
+});
+
+var disDisplay = document.getElementById('dis');
+var repDisplay = document.getElementById('rep');
+var billDisplay = document.getElementById('bill');
+var conDisplay = document.getElementById('con');
+var districtID = null;
+var hoveredStateId = null;
+
+map.on('load', function () {
+// Add a source for the state polygons.
+map.addSource('states', {
+'type': 'geojson',
+'data':
+'https://raw.githubusercontent.com/jbk13004/maps/main/updated3_30.geojson'
+});
+ 
+// Add a layer showing the state polygons.
+
+
+
+   map.addLayer({
+'id': 'states-layer',
+'type': 'fill',
+'source': 'states',
+'layout': {},
+'paint': {
+'fill-color': '#FFB536',
+'fill-opacity': [
+'case',
+['boolean', ['feature-state', 'hover'], false],
+0.5,
+0
+]
+}
+});
+	
+map.addLayer({
+'id': 'borders',
+'type': 'line',
+'source': 'states',
+'layout': {},
+'paint': {
+'line-color': '#545454',
+'line-opacity': 0,
+'line-width': 1
+}
+});
+
+map.on('mousemove', 'states-layer', (e) => {
+
+  map.getCanvas().style.cursor = 'pointer';
+  // Set variables equal to the current feature's magnitude, location, and time
+  var districtNAME = e.features[0].properties.HOUSE_REP_DIST;
+  var repNAME = e.features[0].properties.Full_Name;
+  var billUPDATE = e.features[0].properties.Phone;
+  var contactINFO = e.features[0].properties.Email;
+  
+
+  // Check whether features exist
+  if (e.features.length > 0) {
+    // Display the magnitude, location, and time in the sidebar
+    disDisplay.textContent = districtNAME;
+    repDisplay.textContent = repNAME;
+    billDisplay.textContent = billUPDATE;
+	conDisplay.textContent = contactINFO;
+
+    // If quakeID for the hovered feature is not null,
+    // use removeFeatureState to reset to the default behavior
+    if (districtID) {
+      map.removeFeatureState({
+        source: "states",
+        id: districtID
+      });
+    }
+
+    districtID = e.features[0].id;
+
+    // When the mouse moves over the earthquakes-viz layer, update the
+    // feature state for the feature under the mouse
+    map.setFeatureState({
+      source: 'states',
+      id: districtID,
+    }, {
+      hover: true
+    });
+
+  }
+});
+ 
+map.on("mouseleave", "states-layer", function() {
+  if (districtID) {
+    map.setFeatureState({
+      source: 'states',
+      id: districtID
+    }, {
+      hover: false
+    });
+  }
+
+  districtID = null;
+  // Remove the information from the previously hovered feature from the sidebar
+  disDisplay.textContent = '';
+  repDisplay.textContent = '';
+  billDisplay.textContent = '';
+  conDisplay.textContent = '';
+  // Reset the cursor style
+  map.getCanvas().style.cursor = '';
+});
+ 
+ 
+// When a click event occurs on a feature in the states layer, open a popup at the
+// location of the click, with description HTML from its properties.
+map.on('click', 'states-layer', function (e) {
+new mapboxgl.Popup()
+.setLngLat(e.lngLat)
+.setHTML('<h2 style="text-align:center;">'+ e.features[0].properties.Full_Name + '<p style="text-align:center;"> <a href= "'+e.features[0].properties.Profile+'" target="_blank" rel="noopener noreferrer"><img src = "' + e.features[0].properties.Photos + '" ></a></p>'+ '<h4 style="text-align:center;">'+ e.features[0].properties.Full_Name + ' '+ e.features[0].properties.Update_ + '</p>'+'<h5 style="text-align:center;">District: '+ e.features[0].properties.District + '<p style="text-align:center;">'+ e.features[0].properties.Email + '</p></h5>')
+.addTo(map);
+});
+ 
+ 
+ 
+// Change the cursor to a pointer when the mouse is over the states layer.
+map.on('mouseenter', 'states-layer', function () {
+map.getCanvas().style.cursor = 'pointer';
+});
+ 
+// Change it back to a pointer when it leaves.
+map.on('mouseleave', 'states-layer', function () {
+map.getCanvas().style.cursor = '';
+});
+});
+
+var geocoder = new MapboxGeocoder({ // Initialize the geocoder
+  accessToken: mapboxgl.accessToken, // Set the access token
+  mapboxgl: mapboxgl, // Set the mapbox-gl instance
+  placeholder: 'Search your MA address', // Placeholder text for the search bar
+  bbox: [-73.5082431, 41.2379712, -69.9278518, 42.8868286], // Boundary for Berkeley
+  proximity: {
+    longitude: -71.892119,
+    latitude: 42.362168
+  } // Coordinates of UC Berkeley
+});
+
+map.addControl(geocoder);
+
+
+
+</script>
+ 
+</body>
+</html>
