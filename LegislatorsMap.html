@@ -1,0 +1,365 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>State Legislators Legislative Positions on MAPA Bills</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.0/mapbox-gl-geocoder.css" type="text/css">
+
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+.mapboxgl-popup-content {
+max-height: 400px;
+font: 16px/20px Helvetica;
+overflow-y: scroll;
+}
+
+.districtinfo {
+  position: absolute;
+  font-family: Helvetica;
+  margin-top: 5px;
+  margin-left: 5px;
+  padding: 5px;
+  width: 30%;
+  border: 2px solid black;
+  font-size: 22px;
+  color: #222;
+  background-color: #fff;
+  border-radius: 3px;
+}
+
+  
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class='districtinfo'>
+  <div><strong style="color:#d66920">House District:</strong> <span id='dis'></span></div>
+  <div><strong style="color:#d66920">Congressperson:</strong> <span id='rep'></span></div>
+  <div><strong style="color:#d66920">Email:</strong> <span id='con'></span></div>
+  <div><strong style="color:#d66920">Phone Number:</strong> <span id='bill'></span></div>
+  <div><p></p><div>
+   <div><strong style="color:#004ac9">Senate District:</strong> <span id='dis2'></span></div>
+  <div><strong style="color:#004ac9">Senator:</strong> <span id='rep2'></span></div>
+  <div><strong style="color:#004ac9">Email:</strong> <span id='con2'></span></div>
+  <div><strong style="color:#004ac9">Phone Number:</strong> <span id='bill2'></span></div>
+</div>
+
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiamJrMTMwMDQiLCJhIjoiY2tpOTVzeWpkMDN4ZTJ5bjg3OTBzN21udiJ9.gJQPNCgsOp2w9ECuu_fj2A';
+var map = new mapboxgl.Map({
+container: 'map',
+style: 'mapbox://styles/jbk13004/ckmo73tq8f8cu17qmxprz8kup',
+center: [-71.892119, 42.362168],
+zoom: 8
+});
+
+var disDisplay = document.getElementById('dis');
+var repDisplay = document.getElementById('rep');
+var billDisplay = document.getElementById('bill');
+var conDisplay = document.getElementById('con');
+var dis2Display = document.getElementById('dis2');
+var rep2Display = document.getElementById('rep2');
+var bill2Display = document.getElementById('bill2');
+var con2Display = document.getElementById('con2');
+var districtID = null;
+var districtID2 = null;
+var districtID3 = null;
+var hoveredStateId = null;
+
+map.on('load', function () {
+
+map.addSource('states', {
+'type': 'geojson',
+'data':
+'https://raw.githubusercontent.com/jbk13004/maps/main/updated3_30.geojson'
+});
+ 
+ map.addSource('senate', {
+'type': 'geojson',
+'data':
+'https://raw.githubusercontent.com/jbk13004/maps/main/mass_senate.geojson'
+});
+
+ map.addSource('both', {
+'type': 'geojson',
+'data':
+'https://raw.githubusercontent.com/jbk13004/maps/main/HouseSenate4_12.geojson'
+});
+
+
+   map.addLayer({
+'id': 'senate-layer',
+'type': 'fill',
+'source': 'senate',
+'layout': {},
+'paint': {
+'fill-color': '#004ac9',
+'fill-opacity': [
+'case',
+['boolean', ['feature-state', 'hover'], false],
+0.5,
+0
+]
+}
+});
+
+   map.addLayer({
+'id': 'states-layer',
+'type': 'fill',
+'source': 'states',
+'layout': {},
+'paint': {
+'fill-color': '#FF4F01',
+'fill-opacity': [
+'case',
+['boolean', ['feature-state', 'hover'], false],
+0.4,
+0
+]
+}
+});
+
+
+	
+map.addLayer({
+'id': 'borders',
+'type': 'line',
+'source': 'states',
+'layout': {},
+'paint': {
+'line-color': '#545454',
+'line-opacity': 0,
+'line-width': 1
+}
+});
+
+   map.addLayer({
+'id': 'both-layer',
+'type': 'fill',
+'source': 'both',
+'layout': {},
+'paint': {
+'fill-color': '#004ac9',
+'fill-opacity': [
+'case',
+['boolean', ['feature-state', 'hover'], false],
+0,
+0
+]
+}
+});
+
+map.on('mousemove', 'both-layer', (e) => {
+
+  map.getCanvas().style.cursor = 'pointer';
+ 
+  var districtNAME = e.features[0].properties.HOUSE_REP_DIST;
+  var repNAME = e.features[0].properties.HFull_Name;
+  var billUPDATE = e.features[0].properties.HPhone;
+  var contactINFO = e.features[0].properties.HEmail;
+  
+  var districtNAME2 = e.features[0].properties.SDistrict_1;
+  var repNAME2 = e.features[0].properties.SRep;
+  var billUPDATE2 = e.features[0].properties.SPhone_1;
+  var contactINFO2 = e.features[0].properties.SEmail_1;
+  
+
+ 
+  if (e.features.length > 0) {
+    
+    disDisplay.textContent = districtNAME;
+    repDisplay.textContent = repNAME;
+    billDisplay.textContent = billUPDATE;
+	conDisplay.textContent = contactINFO;
+	
+	dis2Display.textContent = districtNAME2;
+    rep2Display.textContent = repNAME2;
+    bill2Display.textContent = billUPDATE2;
+	con2Display.textContent = contactINFO2;
+
+    
+    if (districtID3) {
+      map.removeFeatureState({
+        source: "both",
+        id: districtID3
+      });
+    }
+
+    districtID3 = e.features[0].id;
+
+   
+    map.setFeatureState({
+      source: 'both',
+      id: districtID3,
+    }, {
+      hover: true
+    });
+
+  }
+});
+
+map.on('mousemove', 'senate-layer', (e) => {
+
+  map.getCanvas().style.cursor = 'pointer';
+ 
+  
+
+ 
+  if (e.features.length > 0) {
+    
+
+    
+    if (districtID2) {
+      map.removeFeatureState({
+        source: "senate",
+        id: districtID2
+      });
+    }
+
+    districtID2 = e.features[0].id;
+
+   
+    map.setFeatureState({
+      source: 'senate',
+      id: districtID2,
+    }, {
+      hover: true
+    });
+
+  }
+});
+
+map.on('mousemove', 'states-layer', (e) => {
+
+  map.getCanvas().style.cursor = 'pointer';
+ 
+  
+
+ 
+  if (e.features.length > 0) {
+    
+
+    
+    if (districtID) {
+      map.removeFeatureState({
+        source: "states",
+        id: districtID
+      });
+    }
+
+    districtID = e.features[0].id;
+
+   
+    map.setFeatureState({
+      source: 'states',
+      id: districtID,
+    }, {
+      hover: true
+    });
+
+  }
+});
+ 
+map.on("mouseleave", "both-layer", function() {
+  if (districtID3) {
+    map.setFeatureState({
+      source: 'both',
+      id: districtID3
+    }, {
+      hover: false
+    });
+  }
+
+  districtID3 = null;
+ 
+  disDisplay.textContent = '';
+  repDisplay.textContent = '';
+  billDisplay.textContent = '';
+  conDisplay.textContent = '';
+  dis2Display.textContent = '';
+  rep2Display.textContent = '';
+  bill2Display.textContent = '';
+  con2Display.textContent = '';
+  
+  map.getCanvas().style.cursor = '';
+});
+ 
+map.on("mouseleave", "senate-layer", function() {
+  if (districtID2) {
+    map.setFeatureState({
+      source: 'senate',
+      id: districtID2
+    }, {
+      hover: false
+    });
+  }
+
+  districtID2 = null;
+  
+  map.getCanvas().style.cursor = '';
+});
+
+map.on("mouseleave", "states-layer", function() {
+  if (districtID) {
+    map.setFeatureState({
+      source: 'states',
+      id: districtID
+    }, {
+      hover: false
+    });
+  }
+
+  districtID = null;
+  
+  map.getCanvas().style.cursor = '';
+});
+
+
+map.on('click', 'both-layer', function (e) {
+new mapboxgl.Popup()
+.setLngLat(e.lngLat)
+.setHTML('<u><h2 style="text-align:center; color:#d66920">Congressperson:</u>'+'<h3 style="text-align:center;">'+ e.features[0].properties.HFull_Name + '<p style="text-align:center;"> <a href= "'+e.features[0].properties.HProfile+'" target="_blank" rel="noopener noreferrer"><img src = "' + e.features[0].properties.HPhotos + '" ></a></p>'+'<h5 style="text-align:center;">District: '+ e.features[0].properties.HDistrict + '<p style="text-align:center;">'+ e.features[0].properties.HEmail + '</p></h5>'+'<strong><u><i>Positions on MAPA bills:</i></u></strong>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Nuclear Weapons Divestment:</a> '+ e.features[0].properties.HNuke_Divestment +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Nuclear Weapons Commission:</a> '+ e.features[0].properties.HNuke_Commission +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Back from the Brink Resolution:</a> '+ e.features[0].properties.HBftB_Resolution +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/divest-from-the-yemen-war/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Divest from the Yemen War/Raytheon:</a> '+ e.features[0].properties.HYemen_Divestment +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/a-moral-budget/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel"noopener noreferrer">Moral Budget for Massachusetts:</a> '+ e.features[0].properties.HMoral_Budget +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/taxpayers-right-to-know/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Taxpayers’ Right to Know:</a> '+ e.features[0].properties.HTxpyrs_Right_to_Know +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/travel-conflict-of-interest/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Travel Conflict of Interest:</a> '+ e.features[0].properties.HTravel_Conflict_of_Interest +'</i></p><u><h2 style="text-align:center; color:#004ac9">Senator:</u>'+'<h3 style="text-align:center;">'+ e.features[0].properties.SRep + '<p style="text-align:center;"> <a href= "'+e.features[0].properties.SProfile_1+'" target="_blank" rel="noopener noreferrer"><img src = "' + e.features[0].properties.SPhoto + '" ></a></p>'+ '<h5 style="text-align:center;">District: '+ e.features[0].properties.SDistrict_1 + '<p style="text-align:center;">'+ e.features[0].properties.SEmail_1 + '</p></h5>'+'<strong><u><i>Positions on MAPA bills:</i></u></strong>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Nuclear Weapons Divestment:</a> '+ e.features[0].properties.SNuke_Divestment_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Nuclear Weapons Commission:</a> '+ e.features[0].properties.SNuke_Commission_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/nuclear-weapons-divestment-2021/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Back from the Brink Resolution:</a> '+ e.features[0].properties.SBftB_Resolution_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/divest-from-the-yemen-war/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Divest from the Yemen War/Raytheon:</a> '+ e.features[0].properties.SYemen_Divestment_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/a-moral-budget/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel"noopener noreferrer">Moral Budget for Massachusetts:</a> '+ e.features[0].properties.SMoral_Budget_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/taxpayers-right-to-know/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Taxpayers’ Right to Know:</a> '+ e.features[0].properties.STxpyrs_Right_to_Know_1 +'</i></p>'+'<p><i><a href="http://masspeaceaction.org/travel-conflict-of-interest/?emci=b6d71936-cd8c-eb11-85aa-00155d43c992&emdi=95b841d2-cd8c-eb11-85aa-00155d43c992&ceid=67899" target="_blank" rel="noopener noreferrer">Travel Conflict of Interest:</a> '+ e.features[0].properties.STravel_Confl_of_Interest +'</i></p>'
+)
+.addTo(map);
+});
+
+
+map.on('mouseenter', 'both-layer', function () {
+map.getCanvas().style.cursor = 'pointer';
+});
+
+map.on('mouseleave', 'both-layer', function () {
+map.getCanvas().style.cursor = '';
+});
+});
+
+var geocoder = new MapboxGeocoder({ 
+  accessToken: mapboxgl.accessToken, 
+  mapboxgl: mapboxgl, 
+  placeholder: 'Search your MA address', 
+  bbox: [-73.5082431, 41.2379712, -69.9278518, 42.8868286], 
+  proximity: {
+    longitude: -71.892119,
+    latitude: 42.362168
+  } 
+});
+
+map.addControl(geocoder);
+
+
+
+
+</script>
+ 
+</body>
+</html>
